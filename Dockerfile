@@ -35,11 +35,12 @@ RUN apt-get update && \
     php-curl \
     php-zip \
     && rm -rf /var/lib/apt/lists/*
-
+    RUN mkdir -p /run/php
+RUN chown -R www-data:www-data /run/php
 # Install Pterodactyl Panel
 # Note: This is just an example, and the actual process may vary depending on the Pterodactyl version
 RUN curl -L https://github.com/pterodactyl/panel/releases/latest/download/panel.tar.gz | tar --strip-components=1 -xzv
-
+listen = /run/php/php7.4-fpm.sock
 # Configure Pterodactyl Panel
 # Note: Configuration steps depend on your specific requirements
 
@@ -48,3 +49,4 @@ EXPOSE 80
 
 # Start Pterodactyl Panel
 CMD ["/usr/sbin/php-fpm7.4", "-F", "--fpm-config", "/etc/php/7.4/fpm/php-fpm.conf"]
+
