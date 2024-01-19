@@ -40,7 +40,7 @@ RUN chown -R www-data:www-data /run/php
 # Install Pterodactyl Panel
 # Note: This is just an example, and the actual process may vary depending on the Pterodactyl version
 RUN curl -L https://github.com/pterodactyl/panel/releases/latest/download/panel.tar.gz | tar --strip-components=1 -xzv
-listen = /run/php/php7.4-fpm.sock
+RUN listen = /run/php/php7.4-fpm.sock
 # Configure Pterodactyl Panel
 # Note: Configuration steps depend on your specific requirements
 
