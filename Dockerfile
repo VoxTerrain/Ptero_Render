@@ -1,53 +1,50 @@
-# Use the official Ubuntu base image
-FROM ubuntu:latest
-
-# Set non-interactive mode during the build
-ENV DEBIAN_FRONTEND=noninteractive
+# Use a base image with necessary dependencies
+FROM ubuntu:20.04
 
 # Install dependencies
 RUN apt-get update && \
-    apt-get install -y curl unzip software-properties-common
+    apt-get install -y curl zip unzip tar git && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install PHP
-RUN add-apt-repository ppa:ondrej/php && \
-    apt-get update && \
-    apt-get install -y php7.4 php7.4-{cli,fpm,mbstring,mysql,zip,curl,gd,xml}
+# Install Docker
+# Note: This is just an example, and the actual process may vary depending on your environment
+RUN curl -fsSL https://get.docker.com -o get-docker.sh && \
+    sh get-docker.sh
 
-# Install Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-
-# Install Node.js
-RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
-    apt-get install -y nodejs
+# Install Pterodactyl dependencies
+RUN apt-get update && \
+    apt-get -y upgrade && \
+    DEBIAN_FRONTEND="noninteractive" apt-get -y install --no-install-recommends \
+    software-properties-common \
+    ca-certificates \
+    curl \
+    git \
+    unzip \
+    tar \
+    nginx \
+    mysql-client \
+    php-cli \
+    php-fpm \
+    php-json \
+    php-mbstring \
+    php-pdo \
+    php-mysql \
+    php-tokenizer \
+    php-bcmath \
+    php-xml \
+    php-curl \
+    php-zip \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Pterodactyl Panel
-WORKDIR /var/www/html
-RUN curl -Lo panel.tar.gz https://github.com/pterodactyl/panel/releases/latest/download/panel.tar.gz && \
-    tar --strip-components=1 -xzvf panel.tar.gz && \
-    chmod -R 755 storage/* bootstrap/cache/
+# Note: This is just an example, and the actual process may vary depending on the Pterodactyl version
+RUN curl -L https://github.com/pterodactyl/panel/releases/latest/download/panel.tar.gz | tar --strip-components=1 -xzv
 
-# Configure environment variables
-ENV APP_ENV=production \
-    APP_KEY=SomeRandomString \
-    APP_DEBUG=false \
-    APP_URL=https://your-panel-url.com \
-    DB_CONNECTION=mysql \
-    DB_HOST=your-mysql-host \
-    DB_PORT=3306 \
-    DB_DATABASE=your-database-name \
-    DB_USERNAME=your-database-username \
-    DB_PASSWORD=your-database-password \
-    DB_SOCKET=/var/run/mysqld/mysqld.sock
+# Configure Pterodactyl Panel
+# Note: Configuration steps depend on your specific requirements
 
-# Install Pterodactyl dependencies and set up the database
-RUN composer install --no-dev --optimize-autoloader && \
-    php artisan key:generate --force && \
-    php artisan p:environment:setup --force && \
-    php artisan migrate --force && \
-    php artisan db:seed --force
-
-# Expose the necessary ports
+# Expose ports
 EXPOSE 80
 
-# Start the web server
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=80"]
+# Start Pterodactyl Panel
+CMD ["/usr/sbin/php-fpm7.4", "-F", "--fpm-config", "/etc/php/7.4/fpm/php-fpm.conf"]
