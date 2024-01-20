@@ -1,26 +1,34 @@
-# Utilizăm o imagine de bază cu Apache și PHP
+# Utilizăm o imagine de bază cu PHP și Apache
 FROM php:7.4-apache
 
-# Instalăm extensii PHP necesare pentru WordPress
-RUN docker-php-ext-install mysqli pdo pdo_mysql
+# Instalăm dependințele necesare
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git unzip && \
+    rm -rf /var/lib/apt/lists/*
 
-# Setăm variabilele de mediu pentru WordPress
-ENV WORDPRESS_DB_HOST=mysql-server \
-    WORDPRESS_DB_USER=root \
-    WORDPRESS_DB_PASSWORD=root \
-    WORDPRESS_DB_NAME=wordpress
+# Descărcăm și instalăm PufferPanel
+RUN git clone --branch 2.2.1 --depth 1 https://github.com/PufferPanel/PufferPanel.git /var/www/html
 
-# Descărcăm și instalăm WordPress
-RUN curl -o wordpress.tar.gz -SL https://wordpress.org/latest.tar.gz \
-    && tar -xzf wordpress.tar.gz -C /var/www/html --strip-components=1 \
-    && rm wordpress.tar.gz \
-    && chown -R www-data:www-data /var/www/html \
-    && a2enmod rewrite
+# Instalăm composer și depășim verificarea SSL pentru a evita erori
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer -- --version=1.10.22 --no-plugins --no-scripts --no-suggest --no-interaction
 
-# Copiem fișierul de configurare WordPress
-COPY wp-config.php /var/www/html/wp-config.php
+# Instalăm dependințele PufferPanel
+WORKDIR /var/www/html
+RUN composer install --no-dev --prefer-dist --optimize-autoloader
 
-# Specificăm portul pe care Apache va asculta
+# Copiem configurația și setările PufferPanel
+COPY config /var/www/html/config
+COPY .env /var/www/html/.env
+
+# Setăm permisiunile corecte
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/storage \
+    && chmod -R 755 /var/www/html/bootstrap
+
+# Adaugăm un cont de administrator (înlocuiește "admin" și "password" cu valorile dorite)
+RUN php artisan pufferpanel:install --admin=admin --email=admin@example.com --password=password
+
+# Expunem portul 80
 EXPOSE 80
 
 # Comanda de start a container-ului
