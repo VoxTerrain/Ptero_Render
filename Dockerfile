@@ -1,53 +1,27 @@
-# Use a base image with necessary dependencies
-FROM ubuntu:20.04
+# Utilizăm o imagine de bază cu Apache și PHP
+FROM php:7.4-apache
 
-# Install dependencies
-RUN apt-get update && \
-    apt-get install -y curl zip unzip tar git && \
-    rm -rf /var/lib/apt/lists/*
+# Instalăm extensii PHP necesare pentru WordPress
+RUN docker-php-ext-install mysqli pdo pdo_mysql
 
-# Install Docker
-# Note: This is just an example, and the actual process may vary depending on your environment
-RUN curl -fsSL https://get.docker.com -o get-docker.sh && \
-    sh get-docker.sh
+# Setăm variabilele de mediu pentru WordPress
+ENV WORDPRESS_DB_HOST=mysql-server \
+    WORDPRESS_DB_USER=root \
+    WORDPRESS_DB_PASSWORD=root \
+    WORDPRESS_DB_NAME=wordpress
 
-# Install Pterodactyl dependencies
-RUN apt-get update && \
-    apt-get -y upgrade && \
-    DEBIAN_FRONTEND="noninteractive" apt-get -y install --no-install-recommends \
-    software-properties-common \
-    ca-certificates \
-    curl \
-    git \
-    unzip \
-    tar \
-    nginx \
-    mysql-client \
-    php-cli \
-    php-fpm \
-    php-json \
-    php-mbstring \
-    php-pdo \
-    php-mysql \
-    php-tokenizer \
-    php-bcmath \
-    php-xml \
-    php-curl \
-    php-zip \
-    && rm -rf /var/lib/apt/lists/*
+# Descărcăm și instalăm WordPress
+RUN curl -o wordpress.tar.gz -SL https://wordpress.org/latest.tar.gz \
+    && tar -xzf wordpress.tar.gz -C /var/www/html --strip-components=1 \
+    && rm wordpress.tar.gz \
+    && chown -R www-data:www-data /var/www/html \
+    && a2enmod rewrite
 
-# Install Pterodactyl Panel
-# Note: This is just an example, and the actual process may vary depending on the Pterodactyl version
-RUN curl -L https://github.com/pterodactyl/panel/releases/latest/download/panel.tar.gz | tar --strip-components=1 -xzv
+# Copiem fișierul de configurare WordPress
+COPY wp-config.php /var/www/html/wp-config.php
 
-# Create the directory for PHP-FPM socket
-RUN mkdir -p /run/php
-
-# Configure Pterodactyl Panel
-# Note: Configuration steps depend on your specific requirements
-
-# Expose ports
+# Specificăm portul pe care Apache va asculta
 EXPOSE 80
 
-# Start PHP-FPM
-CMD ["/usr/sbin/php-fpm7.4", "--nodaemonize", "--fpm-config", "/etc/php/7.4/fpm/php-fpm.conf"]
+# Comanda de start a container-ului
+CMD ["apache2-foreground"]
